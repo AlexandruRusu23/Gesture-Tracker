@@ -1,5 +1,6 @@
 #include "Global.h"
 #include "ObjectsManager.h"
+#include "Camera.h"
 
 int main()
 {
@@ -7,7 +8,13 @@ int main()
 	objectManager = Managers::ObjectsManager::Instance();
 	objectManager->printDetails();
 
-	system("Pause");
+	Video::Camera camera;
+	if (!camera.Start())
+		camera.Stop();
+
+	camera.Record();
+
+	system("pause");
 
 	return 0;
 }

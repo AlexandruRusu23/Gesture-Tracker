@@ -31,6 +31,9 @@
     <Filter Include="Managers\Source Files">
       <UniqueIdentifier>{df1a399a-3803-4a98-9047-0eb0a81caa63}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Video">
+      <UniqueIdentifier>{e4faebaf-ede5-48d8-b522-ac4db23c2bc0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,6 +54,9 @@
     <ClCompile Include="ObjectsManager.cpp">
       <Filter>Managers\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Video</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClosedObject.h">
@@ -70,6 +76,9 @@
     </ClInclude>
     <ClInclude Include="Global.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Video</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
