@@ -22,9 +22,11 @@ ObjectsManager::ObjectsManager(const ObjectsManager& objectsManager)
 
 }
 
-void ObjectsManager::receiveObjects(const std::vector<Core::Object> objects)
+void ObjectsManager::receiveObjects(const Core::Object objects)
 {
-	_vecObjects = objects;
+	std::vector<Core::Object> object;
+	object.push_back(objects);
+	_vecObjects = object;
 }
 
 void ObjectsManager::DetectObjectsType()

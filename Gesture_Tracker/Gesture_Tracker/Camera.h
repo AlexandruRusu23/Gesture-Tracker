@@ -32,9 +32,6 @@ namespace Video
 		cv::Mat _imgHSV;
 		cv::Mat _imgThresh;
 
-		// circles found in image
-		std::vector<cv::Vec3f> _v3fCircles;
-
 		int iLowH, iLowS, iLowV, iHighH, iHighS, iHighV;
 
 		// object moving mark

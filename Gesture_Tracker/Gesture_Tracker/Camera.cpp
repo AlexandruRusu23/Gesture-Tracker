@@ -5,7 +5,7 @@ using namespace Video;
 Camera::Camera()
 {
 	// by default the class will try to connect for primary web cam installed on device
-	this->_webCameraID.open(1);
+	this->_webCameraID.open(0);
 	if (this->_webCameraID.isOpened() == false)
 		Stop();
 	this->_isRunning = true;
@@ -176,6 +176,7 @@ void Camera::Record()
 		}
 		Core::Point point(iLastX, iLastY);
 		tracePoints.push_back(point);
+		object = tracePoints;
 
 		// declare windows
 		cv::namedWindow("imgOriginal", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window

@@ -14,6 +14,8 @@ int main()
 
 	camera.Record();
 
+	objectManager->receiveObjects(camera.object);
+
 	system("pause");
 
 	return 0;

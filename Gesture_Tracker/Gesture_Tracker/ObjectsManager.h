@@ -23,7 +23,7 @@ namespace Managers
 		{
 			std::cout << "I'm a singleton class";
 		}
-		void receiveObjects(const std::vector<Core::Object> objects);
+		void receiveObjects(const Core::Object objects);
 
 	private:
 		// all objects stored in std::vector
