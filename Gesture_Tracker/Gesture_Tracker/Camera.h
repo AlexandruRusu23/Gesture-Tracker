@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include "Global.h"
+#include "Object.h"
 
 namespace Video
 {
@@ -19,6 +20,8 @@ namespace Video
 
 		void Record();
 
+		Core::Object object;
+
 	private:
 		// handler for Camera
 		bool _isRunning;
@@ -27,12 +30,22 @@ namespace Video
 		// images
 		cv::Mat _imgOriginal;
 		cv::Mat _imgHSV;
-		cv::Mat _imgThreshLow;
-		cv::Mat _imgThreshHigh;
 		cv::Mat _imgThresh;
 
 		// circles found in image
 		std::vector<cv::Vec3f> _v3fCircles;
+
+		int iLowH, iLowS, iLowV, iHighH, iHighS, iHighV;
+
+		// object moving mark
+		cv::Rect _objectBoundingRectangle = cv::Rect(0, 0, 0, 0);
+		int _theObject[2] = { 0, 0 };
+
+		// Threshold window
+		void CreateControlWindow();
+
+		// search object moving
+		void SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed);
 
 		// keyboard event watcher
 		void KeyboardEvent();

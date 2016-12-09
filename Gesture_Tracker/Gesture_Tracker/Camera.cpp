@@ -5,7 +5,7 @@ using namespace Video;
 Camera::Camera()
 {
 	// by default the class will try to connect for primary web cam installed on device
-	this->_webCameraID.open(0);
+	this->_webCameraID.open(1);
 	if (this->_webCameraID.isOpened() == false)
 		Stop();
 	this->_isRunning = true;
@@ -45,12 +45,86 @@ void Camera::KeyboardEvent()
 	if (keyPress == 27)
 	{
 		std::cout << "Escape key pressed\n";
+		object.printPoints();
 		this->Stop();
 	}
 }
 
+void Camera::CreateControlWindow()
+{
+	cv::namedWindow("Control", CV_WINDOW_AUTOSIZE); //create a window called "Control"
+	cv::resizeWindow("Control", 400, 300);
+
+	iLowH = 41;
+	iHighH = 87;
+
+	iLowS = 71;
+	iHighS = 160;
+
+	iLowV = 0;
+	iHighV = 255;
+
+	//Create track bars in "Control" window
+	cv::createTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
+	cv::createTrackbar("HighH", "Control", &iHighH, 179);
+
+	cv::createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
+	cv::createTrackbar("HighS", "Control", &iHighS, 255);
+
+	cv::createTrackbar("LowV", "Control", &iLowV, 255);//Value (0 - 255)
+	cv::createTrackbar("HighV", "Control", &iHighV, 255);
+}
+
+void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed)
+{
+	bool objectDetected = false;
+	cv::Mat temp;
+	thresholdImage.copyTo(temp);
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+
+	cv::findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+	if (contours.size() > 0)
+		objectDetected = true;
+
+	if (objectDetected)
+	{
+		std::vector<std::vector<cv::Point>> largestContourVec;
+		largestContourVec.push_back(contours.at(contours.size() - 1));
+
+		_objectBoundingRectangle = cv::boundingRect(largestContourVec.at(0));
+		int xPos = _objectBoundingRectangle.x + _objectBoundingRectangle.width / 2;
+		int yPos = _objectBoundingRectangle.y + _objectBoundingRectangle.height / 2;
+
+		_theObject[0] = xPos;
+		_theObject[1] = yPos;
+	}
+
+	int x = _theObject[0];
+	int y = _theObject[1];
+
+	cv::circle(cameraFeed, cv::Point(x, y), 20, cv::Scalar(0, 255, 0), 2);
+	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y-25), cv::Scalar(0, 255, 0), 2);
+	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y+25), cv::Scalar(0, 255, 0), 2);
+	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x-25, y), cv::Scalar(0, 255, 0), 2);
+	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x+25, y), cv::Scalar(0, 255, 0), 2);
+}
+
 void Camera::Record()
 {
+	CreateControlWindow();
+
+	int iLastX = -1;
+	int iLastY = -1;
+
+	cv::Mat imgTmp;
+	_webCameraID.read(imgTmp);
+
+	cv::Mat imgLines = cv::Mat::zeros(imgTmp.size(), CV_8UC3);
+
+	std::vector<Core::Point> tracePoints;
+
 	while (_isRunning)
 	{
 		if (!_webCameraID.isOpened())
@@ -67,55 +141,50 @@ void Camera::Record()
 
 		cv::cvtColor(_imgOriginal, _imgHSV, CV_BGR2HSV);
 
-		cv::inRange(_imgHSV, cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170), _imgThresh);
-		//cv::inRange(_imgHSV, cv::Scalar(38, 98, 116), cv::Scalar(55, 224, 136), _imgThresh);
+		//  cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170)
+		cv::inRange(_imgHSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _imgThresh);
+	
+		//morphological opening (removes small objects from the foreground)
+		erode(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		dilate(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 
-		//cv::add(_imgThreshLow, _imgThreshHigh, _imgThresh);
+		//morphological closing (removes small holes from the foreground)
+		dilate(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		erode(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 
-		cv::GaussianBlur(_imgThresh, _imgThresh, cv::Size(3, 3), 0);
+		//Calculate the moments of the thresholded image
+		cv::Moments oMoments = cv::moments(_imgThresh);
 
-		cv::Mat structuringElement = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+		double dM01 = oMoments.m01;
+		double dM10 = oMoments.m10;
+		double dArea = oMoments.m00;
 
-		cv::dilate(_imgThresh, _imgThresh, structuringElement);
-		cv::erode(_imgThresh, _imgThresh, structuringElement);
+		if (dArea > 10000)
+		{
+			//calculate the position of the ball
+			int posX = dM10 / dArea;
+			int posY = dM01 / dArea;
 
-		// fill circles vector with all circles in processed image
-		cv::HoughCircles(_imgThresh,			// input image
-			_v3fCircles,							// function output (must be a standard template library vector
-			CV_HOUGH_GRADIENT,					// two-pass algorithm for detecting circles, this is the only choice available
-			2,									// size of image / this value = "accumulator resolution", i.e. accum res = size of image / 2
-			_imgThresh.rows / 4,				// min distance in pixels between the centers of the detected circles
-			100,								// high threshold of Canny edge detector (called by cvHoughCircles)						
-			70,									// low threshold of Canny edge detector (set at 1/2 previous value)
-			10,									// min circle radius (any circles with smaller radius will not be returned)
-			200);								// max circle radius (any circles with larger radius will not be returned)
+			if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
+			{
+				//Draw a red line from the previous point to the current point
+				line(imgLines, cv::Point(posX, posY), cv::Point(iLastX, iLastY), cv::Scalar(0, 0, 255), 2);
+			}
 
-		for (int i = 0; i < _v3fCircles.size(); i++) {		// for each circle . . .
-															// show ball position x, y, and radius to command line
-			//std::cout << "ball position x = " << v3fCircles[i][0]			// x position of center point of circle
-			//	<< ", y = " << v3fCircles[i][1]								// y position of center point of circle
-			//	<< ", radius = " << v3fCircles[i][2] << "\n";				// radius of circle
-
-			// draw small green circle at center of detected object
-			cv::circle(_imgOriginal,												// draw on original image
-				cv::Point((int)_v3fCircles[i][0], (int)_v3fCircles[i][1]),		// center point of circle
-				3,																// radius of circle in pixels
-				cv::Scalar(0, 255, 0),											// draw pure green (remember, its BGR, not RGB)
-				CV_FILLED);														// thickness, fill in the circle
-
-																				// draw red circle around the detected object
-			cv::circle(_imgOriginal,												// draw on original image
-				cv::Point((int)_v3fCircles[i][0], (int)_v3fCircles[i][1]),		// center point of circle
-				(int)_v3fCircles[i][2],											// radius of circle in pixels
-				cv::Scalar(0, 0, 255),											// draw pure red (remember, its BGR, not RGB)
-				3);																// thickness of circle in pixels
-		}	// end for
+			iLastX = posX;
+			iLastY = posY;
+		}
+		Core::Point point(iLastX, iLastY);
+		tracePoints.push_back(point);
 
 		// declare windows
 		cv::namedWindow("imgOriginal", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window
 		cv::namedWindow("imgThresh", CV_WINDOW_AUTOSIZE);	// or CV_WINDOW_AUTOSIZE for a fixed size window matching the resolution of the image
 															// CV_WINDOW_AUTOSIZE is the default
 
+		SearchForMove(_imgThresh, _imgOriginal);
+
+		_imgOriginal = _imgOriginal + imgLines;
 		cv::imshow("imgOriginal", _imgOriginal);			// show windows
 		cv::imshow("imgThresh", _imgThresh);
 

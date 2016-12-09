@@ -13,14 +13,13 @@ namespace Core
 		Point(float xCoord, float yCoord);
 		~Point();
 
+		// coordinates
+		float _xCoord, _yCoord;
+
 		//copy constructor
 		Point(const Point& point);
 		//operator=
 		void operator=(const Point& point);
-
-	private:
-		// coordinates
-		float _xCoord, _yCoord;
 	};
 }
 #endif // !POINT_H

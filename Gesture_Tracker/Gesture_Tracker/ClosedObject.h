@@ -10,11 +10,14 @@ namespace Core
 	public:
 		ClosedObject(Object &object) : Object(object) {};
 		~ClosedObject();
-	private:
+
 		//vectorial coordinates
 		std::vector<Point> _vecVectorialCoords;
 		//center of the object
 		Point _centerCoords;
+
+	private:
+
 	};
 }
 

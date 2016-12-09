@@ -5,14 +5,16 @@
 
 namespace Core
 {
-	class OpenObject : protected Object
+	class OpenObject : public Object
 	{
 	public:
 		OpenObject(Object &object) : Object(object) {};
 		~OpenObject();
 
-	private:
 		std::vector<Point> _vecVectorialCoords;
+
+	private:
+
 	};
 }
 #endif

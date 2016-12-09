@@ -15,6 +15,7 @@ namespace Managers
 		ObjectsManager(const ObjectsManager& objectsManager);
 		//instance pointer
 		static ObjectsManager* _pInstance;
+		void DetectObjectsType();
 
 	public:
 		static ObjectsManager* Instance();
@@ -22,6 +23,7 @@ namespace Managers
 		{
 			std::cout << "I'm a singleton class";
 		}
+		void receiveObjects(const std::vector<Core::Object> objects);
 
 	private:
 		// all objects stored in std::vector
