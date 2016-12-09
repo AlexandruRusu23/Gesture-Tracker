@@ -1,9 +1,12 @@
-#include "ClosedObject.h"
-#include "OpenObject.h"
+#include "ObjectsManager.h"
 
 int main()
 {
-	OpenObject openObject();
-	ClosedObject closedObject();
+	ObjectsManager *objectManager;
+	objectManager = ObjectsManager::Instance();
+	objectManager->printDetails();
+
+	system("Pause");
+
 	return 0;
 }

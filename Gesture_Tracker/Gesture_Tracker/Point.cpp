@@ -11,13 +11,13 @@ Point::~Point()
 
 }
 
-Point::Point(Point & point)
+Point::Point(const Point& point)
 {
 	this->_xCoord = point._xCoord;
 	this->_yCoord = point._yCoord;
 }
 
-void Point::operator=(Point & point)
+void Point::operator=(const Point& point)
 {
 	this->_xCoord = point._xCoord;
 	this->_yCoord = point._yCoord;

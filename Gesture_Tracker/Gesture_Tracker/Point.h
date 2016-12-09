@@ -12,9 +12,9 @@ public:
 	~Point();
 
 	//copy constructor
-	Point(Point &point);
+	Point(const Point& point);
 	//operator=
-	void operator=(Point &point);
+	void operator=(const Point& point);
 
 private:
 	// coordinates

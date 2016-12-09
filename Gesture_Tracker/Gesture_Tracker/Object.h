@@ -16,9 +16,9 @@ public:
 	~Object();
 
 	//copy constructor
-	Object(Object &object);
+	Object(const Object& object);
 	//operator=
-	void operator=(Object &object);
+	void operator=(const Object& object);
 
 private:
 	//points which represent an object

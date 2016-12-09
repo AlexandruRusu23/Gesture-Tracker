@@ -11,13 +11,13 @@ Object::~Object()
 	_vecPathCoords.clear();
 }
 
-Object::Object(Object &object)
+Object::Object(const Object& object)
 {
 	this->_vecPathCoords = object._vecPathCoords;
 	this->type.assign(object.type);
 }
 
-void Object::operator=(Object &object)
+void Object::operator=(const Object& object)
 {
 	this->_vecPathCoords = object._vecPathCoords;
 	this->type.assign(object.type);
