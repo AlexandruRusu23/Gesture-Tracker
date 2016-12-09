@@ -25,6 +25,8 @@ namespace Video
 	private:
 		// handler for Camera
 		bool _isRunning;
+		bool _isTracking;
+
 		// object associated to web camera
 		cv::VideoCapture _webUpCameraID;
 		cv::VideoCapture _webSideCameraID;
@@ -35,6 +37,10 @@ namespace Video
 		cv::Mat _img2HSV;
 		cv::Mat _img1Thresh;
 		cv::Mat _img2Thresh;
+		cv::Mat _imgLines1;
+		cv::Mat _imgLines2;
+		cv::Mat _imgTmp1;
+		cv::Mat _imgTmp2;
 
 		int iLowH, iLowS, iLowV, iHighH, iHighS, iHighV;
 
@@ -44,6 +50,12 @@ namespace Video
 
 		// Threshold window
 		void CreateControlWindow();
+
+		void CreateThreshHold();
+
+		void CalculateTrackedObjectPosition(int &iLast1X, int &iLast1Y, int &iLast2X, int &iLast2Y);
+
+		void WindowsManipulation();
 
 		// search object moving
 		void SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed);

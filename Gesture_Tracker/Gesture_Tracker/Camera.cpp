@@ -12,6 +12,7 @@ Camera::Camera()
 	if (this->_webSideCameraID.isOpened() == false)
 		Stop();
 	this->_isRunning = true;
+	this->_isTracking = false;
 }
 
 Camera::~Camera()
@@ -58,6 +59,12 @@ void Camera::KeyboardEvent()
 		object.printPoints();
 		this->Stop();
 	}
+
+	if (keyPress == 'c')
+	{
+		_imgLines1 = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
+		_imgLines2 = cv::Mat::zeros(_imgTmp2.size(), CV_8UC3);
+	}
 }
 
 void Camera::CreateControlWindow()
@@ -83,6 +90,95 @@ void Camera::CreateControlWindow()
 
 	cv::createTrackbar("LowV", "Control", &iLowV, 255);//Value (0 - 255)
 	cv::createTrackbar("HighV", "Control", &iHighV, 255);
+}
+
+void Camera::CreateThreshHold()
+{
+	cv::cvtColor(_imgOriginalUpView, _img1HSV, CV_BGR2HSV);
+	cv::cvtColor(_imgOriginalSideView, _img2HSV, CV_BGR2HSV);
+
+	//  cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170)
+	cv::inRange(_img1HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img1Thresh);
+	cv::inRange(_img2HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img2Thresh);
+
+	//morphological opening (removes small objects from the foreground)
+	erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+
+	//morphological opening (removes small objects from the foreground)
+	erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+
+	//morphological closing (removes small holes from the foreground)
+	dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+
+	//morphological closing (removes small holes from the foreground)
+	dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+}
+
+void Camera::CalculateTrackedObjectPosition(int &iLast1X, int &iLast1Y, int &iLast2X, int &iLast2Y)
+{
+	//Calculate the moments of the thresholded image
+	cv::Moments oMoments1 = cv::moments(_img1Thresh);
+	//Calculate the moments of the thresholded image
+	cv::Moments oMoments2 = cv::moments(_img2Thresh);
+
+	if (_isTracking)
+	{
+		double d1M01 = oMoments1.m01;
+		double d1M10 = oMoments1.m10;
+		double d1Area = oMoments1.m00;
+
+		if (d1Area > 10000)
+		{
+			//calculate the position of the ball
+			int posX = d1M10 / d1Area;
+			int posY = d1M01 / d1Area;
+
+			if (iLast1X >= 0 && iLast1Y >= 0 && posX >= 0 && posY >= 0)
+			{
+				if ((abs(iLast1X - posX) >= 2 && abs(iLast1X - posX) <= 50) || (abs(iLast1Y - posY) >= 2 && abs(iLast1Y - posY) <= 50))
+				{
+					//Draw a red line from the previous point to the current point
+					line(_imgLines1, cv::Point(posX, posY), cv::Point(iLast1X, iLast1Y), cv::Scalar(0, 0, 255), 2);
+				}
+			}
+
+			iLast1X = posX;
+			iLast1Y = posY;
+		}
+	}
+
+	double d2M01 = oMoments2.m01;
+	double d2M10 = oMoments2.m10;
+	double d2Area = oMoments2.m00;
+
+	if (d2Area > 10000)
+	{
+		//calculate the position of the ball
+		int posX = d2M10 / d2Area;
+		int posY = d2M01 / d2Area;
+
+		if (iLast2X >= 0 && iLast2Y >= 0 && posX >= 0 && posY >= 0)
+		{
+			if (posY < _imgOriginalSideView.rows / 3)
+			{
+				_isTracking = false;
+				return;
+			}
+			_isTracking = true;
+			if ((abs(iLast2X - posX) >= 5 && abs(iLast2X - posX) <= 50) || (abs(iLast2Y - posY) >= 5 && abs(iLast2Y - posY) <= 50))
+			{
+				//Draw a red line from the previous point to the current point
+				line(_imgLines2, cv::Point(posX, posY), cv::Point(iLast2X, iLast2Y), cv::Scalar(0, 0, 255), 2);
+			}
+		}
+
+		iLast2X = posX;
+		iLast2Y = posY;
+	}
 }
 
 void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed)
@@ -121,6 +217,25 @@ void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed)
 	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x+25, y), cv::Scalar(0, 255, 0), 2);
 }
 
+void Camera::WindowsManipulation()
+{
+	// declare windows
+	cv::namedWindow("imgOriginalUpView", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window
+	cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);	// or CV_WINDOW_AUTOSIZE for a fixed size window matching the resolution of the image CV_WINDOW_AUTOSIZE is the default
+	cv::namedWindow("imgOriginalSideView", CV_WINDOW_AUTOSIZE);
+	cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);
+
+	SearchForMove(_img1Thresh, _imgOriginalUpView);
+	SearchForMove(_img2Thresh, _imgOriginalSideView);
+
+	_imgOriginalUpView = _imgOriginalUpView + _imgLines1;
+	_imgOriginalSideView = _imgOriginalSideView + _imgLines2;
+	cv::imshow("imgOriginalUpView", _imgOriginalUpView); // show windows
+	cv::imshow("imgOriginalSideView", _imgOriginalSideView); // show windows
+	cv::imshow("img1Thresh", _img1Thresh);
+	cv::imshow("img2Thresh", _img2Thresh);
+}
+
 void Camera::Record()
 {
 	CreateControlWindow();
@@ -130,16 +245,13 @@ void Camera::Record()
 	int iLast2X = -1;
 	int iLast2Y = -1;
 
-	cv::Mat imgTmp1;
-	cv::Mat imgTmp2;
-
-	_webUpCameraID.read(imgTmp1);
-	_webSideCameraID.read(imgTmp2);
-
-	cv::Mat imgLines1 = cv::Mat::zeros(imgTmp1.size(), CV_8UC3);
-	cv::Mat imgLines2 = cv::Mat::zeros(imgTmp2.size(), CV_8UC3);
+	_webUpCameraID.read(_imgTmp1);
+	_webSideCameraID.read(_imgTmp2);
 
 	std::vector<Core::Point> tracePoints;
+
+	_imgLines1 = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
+	_imgLines2 = cv::Mat::zeros(_imgTmp2.size(), CV_8UC3);
 
 	while (_isRunning)
 	{
@@ -165,99 +277,16 @@ void Camera::Record()
 			this->Stop();
 		}
 
-		cv::cvtColor(_imgOriginalUpView, _img1HSV, CV_BGR2HSV);
-		cv::cvtColor(_imgOriginalSideView, _img2HSV, CV_BGR2HSV);
+		// create the threshold for both cameras
+		CreateThreshHold();
 
-		//  cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170)
-		cv::inRange(_img1HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img1Thresh);
-		cv::inRange(_img2HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img2Thresh);
-	
-		//morphological opening (removes small objects from the foreground)
-		erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-
-		//morphological opening (removes small objects from the foreground)
-		erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-
-		//morphological closing (removes small holes from the foreground)
-		dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-
-		//morphological closing (removes small holes from the foreground)
-		dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-
-		//Calculate the moments of the thresholded image
-		cv::Moments oMoments1 = cv::moments(_img1Thresh);
-		//Calculate the moments of the thresholded image
-		cv::Moments oMoments2 = cv::moments(_img2Thresh);
-
-		double d1M01 = oMoments1.m01;
-		double d1M10 = oMoments1.m10;
-		double d1Area = oMoments1.m00;
-
-		if (d1Area > 10000)
-		{
-			//calculate the position of the ball
-			int posX = d1M10 / d1Area;
-			int posY = d1M01 / d1Area;
-
-			if (iLast1X >= 0 && iLast1Y >= 0 && posX >= 0 && posY >= 0)
-			{
-				if ((abs(iLast1X - posX) >= 5 && abs(iLast1X - posX) <= 50) || (abs(iLast1Y - posY) >= 5 && abs(iLast1Y - posY) <= 50))
-				{
-					//Draw a red line from the previous point to the current point
-					line(imgLines1, cv::Point(posX, posY), cv::Point(iLast1X, iLast1Y), cv::Scalar(0, 0, 255), 2);
-				}
-			}
-
-			iLast1X = posX;
-			iLast1Y = posY;
-		}
-
-		double d2M01 = oMoments2.m01;
-		double d2M10 = oMoments2.m10;
-		double d2Area = oMoments2.m00;
-
-		if (d2Area > 10000)
-		{
-			//calculate the position of the ball
-			int posX = d2M10 / d2Area;
-			int posY = d2M01 / d2Area;
-
-			if (iLast2X >= 0 && iLast2Y >= 0 && posX >= 0 && posY >= 0)
-			{
-				if ((abs(iLast2X - posX) >= 5 && abs(iLast2X - posX) <= 50) || (abs(iLast2Y - posY) >= 5 && abs(iLast2Y - posY) <= 50))
-				{
-					//Draw a red line from the previous point to the current point
-					line(imgLines2, cv::Point(posX, posY), cv::Point(iLast2X, iLast2Y), cv::Scalar(0, 0, 255), 2);
-				}
-			}
-
-			iLast2X = posX;
-			iLast2Y = posY;
-		}
+		CalculateTrackedObjectPosition(iLast1X, iLast1Y, iLast2X, iLast2Y);
 
 		Core::Point point(iLast1X, iLast1Y);
 		tracePoints.push_back(point);
 		object = tracePoints;
 
-		// declare windows
-		cv::namedWindow("imgOriginalUpView", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window
-		cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);	// or CV_WINDOW_AUTOSIZE for a fixed size window matching the resolution of the image CV_WINDOW_AUTOSIZE is the default
-		cv::namedWindow("imgOriginalSideView", CV_WINDOW_AUTOSIZE);
-		cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);
-
-		SearchForMove(_img1Thresh, _imgOriginalUpView);
-		SearchForMove(_img2Thresh, _imgOriginalSideView);
-
-		_imgOriginalUpView = _imgOriginalUpView + imgLines1;
-		_imgOriginalSideView = _imgOriginalSideView + imgLines2;
-		cv::imshow("imgOriginalUpView", _imgOriginalUpView); // show windows
-		cv::imshow("imgOriginalSideView", _imgOriginalSideView); // show windows
-		cv::imshow("img1Thresh", _img1Thresh);
-		cv::imshow("img2Thresh", _img2Thresh);
+		WindowsManipulation();
 
 		KeyboardEvent();
 	}

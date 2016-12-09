@@ -29,7 +29,7 @@ void Object::printPoints()
 Object::Object(std::vector<Point> vecPathCoords)
 {
 	this->_vecPathCoords = vecPathCoords;
-	type = "Unknown";
+	_type = "Unknown";
 }
 
 Object::~Object()
@@ -40,11 +40,11 @@ Object::~Object()
 Object::Object(const Object& object)
 {
 	this->_vecPathCoords = object._vecPathCoords;
-	this->type.assign(object.type);
+	this->_type.assign(object._type);
 }
 
 void Object::operator=(const Object& object)
 {
 	this->_vecPathCoords = object._vecPathCoords;
-	this->type.assign(object.type);
+	this->_type.assign(object._type);
 }
