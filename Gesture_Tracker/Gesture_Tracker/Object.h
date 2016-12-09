@@ -7,24 +7,26 @@
 #include <vector>
 #include <string>
 
-class Object
+namespace Core
 {
-public:
-	//constructor
-	Object() {};
-	Object(std::vector<Point> vecPathCoords);
-	~Object();
+	class Object
+	{
+	public:
+		//constructor
+		Object() {};
+		Object(std::vector<Point> vecPathCoords);
+		~Object();
 
-	//copy constructor
-	Object(const Object& object);
-	//operator=
-	void operator=(const Object& object);
+		//copy constructor
+		Object(const Object& object);
+		//operator=
+		void operator=(const Object& object);
 
-private:
-	//points which represent an object
-	std::vector<Point> _vecPathCoords;
-	//type of an Object ( default = "Unknown")
-	std::string type;
-};
-
+	private:
+		//points which represent an object
+		std::vector<Point> _vecPathCoords;
+		//type of an Object ( default = "Unknown")
+		std::string type;
+	};
+}
 #endif // !OBJECT_H

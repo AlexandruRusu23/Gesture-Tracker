@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClosedObject.h" />
+    <ClInclude Include="Global.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjectsManager.h" />
     <ClInclude Include="OpenObject.h" />

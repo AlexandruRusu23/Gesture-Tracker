@@ -16,42 +16,60 @@
     <Filter Include="Managers">
       <UniqueIdentifier>{c8973f7b-416a-47eb-9af5-6ee5cf2abf08}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{cb36d843-f5c7-4d7a-b1af-6ce6d9cb5b13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Header Files">
+      <UniqueIdentifier>{4fd70c29-3835-4f82-aef6-79f30bb2ea9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Managers\Header Files">
+      <UniqueIdentifier>{ce9c1931-e9d1-40ec-8aaa-ce661b4ea837}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Source Files">
+      <UniqueIdentifier>{699e4acd-393a-4f5c-992f-dad45940c400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Managers\Source Files">
+      <UniqueIdentifier>{df1a399a-3803-4a98-9047-0eb0a81caa63}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Point.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="ClosedObject.cpp">
+      <Filter>Core\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Object.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Core\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OpenObject.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Core\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ClosedObject.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Point.cpp">
+      <Filter>Core\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ObjectsManager.cpp">
-      <Filter>Managers</Filter>
+      <Filter>Managers\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Point.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="ClosedObject.h">
+      <Filter>Core\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Object.h">
-      <Filter>Header Files</Filter>
+      <Filter>Core\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OpenObject.h">
-      <Filter>Header Files</Filter>
+      <Filter>Core\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ClosedObject.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Point.h">
+      <Filter>Core\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ObjectsManager.h">
-      <Filter>Managers</Filter>
+      <Filter>Managers\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Global.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

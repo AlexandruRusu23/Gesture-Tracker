@@ -3,22 +3,24 @@
 
 #include <iostream>
 
-class Point
+namespace Core
 {
-public:
-	// constructor
-	Point() {};
-	Point(float xCoord, float yCoord);
-	~Point();
+	class Point
+	{
+	public:
+		// constructor
+		Point() {};
+		Point(float xCoord, float yCoord);
+		~Point();
 
-	//copy constructor
-	Point(const Point& point);
-	//operator=
-	void operator=(const Point& point);
+		//copy constructor
+		Point(const Point& point);
+		//operator=
+		void operator=(const Point& point);
 
-private:
-	// coordinates
-	float _xCoord, _yCoord;
-};
-
+	private:
+		// coordinates
+		float _xCoord, _yCoord;
+	};
+}
 #endif // !POINT_H

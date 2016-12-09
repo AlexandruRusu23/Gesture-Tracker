@@ -1,5 +1,7 @@
 #include "Point.h"
 
+using namespace Core;
+
 Point::Point(float xCoord, float yCoord)
 {
 	this->_xCoord = xCoord;

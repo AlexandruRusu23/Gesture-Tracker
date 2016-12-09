@@ -1,9 +1,10 @@
+#include "Global.h"
 #include "ObjectsManager.h"
 
 int main()
 {
-	ObjectsManager *objectManager;
-	objectManager = ObjectsManager::Instance();
+	Managers::ObjectsManager *objectManager;
+	objectManager = Managers::ObjectsManager::Instance();
 	objectManager->printDetails();
 
 	system("Pause");

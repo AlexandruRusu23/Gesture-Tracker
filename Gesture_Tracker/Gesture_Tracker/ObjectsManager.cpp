@@ -1,5 +1,7 @@
 #include "ObjectsManager.h"
 
+using namespace Managers;
+
 ObjectsManager* ObjectsManager::_pInstance = NULL;
 
 ObjectsManager::ObjectsManager()

@@ -3,14 +3,16 @@
 
 #include "Object.h"
 
-class OpenObject : protected Object
+namespace Core
 {
-public:
-	OpenObject(Object &object) : Object(object) {};
-	~OpenObject();
-	
-private:
-	std::vector<Point> _vecVectorialCoords;
-};
+	class OpenObject : protected Object
+	{
+	public:
+		OpenObject(Object &object) : Object(object) {};
+		~OpenObject();
 
+	private:
+		std::vector<Point> _vecVectorialCoords;
+	};
+}
 #endif

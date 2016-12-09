@@ -1,5 +1,7 @@
 #include "Object.h"
 
+using namespace Core;
+
 Object::Object(std::vector<Point> vecPathCoords)
 {
 	this->_vecPathCoords = vecPathCoords;
