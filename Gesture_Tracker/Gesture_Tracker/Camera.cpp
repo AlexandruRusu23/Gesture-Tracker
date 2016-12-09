@@ -67,10 +67,10 @@ void Camera::Record()
 
 		cv::cvtColor(_imgOriginal, _imgHSV, CV_BGR2HSV);
 
-		cv::inRange(_imgHSV, cv::Scalar(45, 100, 50), cv::Scalar(75, 255, 255), _imgThresh);
-		//cv::inRange(imgHSV, cv::Scalar(80, 75, 65), cv::Scalar(85, 95, 100), imgThreshHigh);
+		cv::inRange(_imgHSV, cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170), _imgThresh);
+		//cv::inRange(_imgHSV, cv::Scalar(38, 98, 116), cv::Scalar(55, 224, 136), _imgThresh);
 
-		//cv::add(imgThreshLow, imgThreshHigh, imgThresh);
+		//cv::add(_imgThreshLow, _imgThreshHigh, _imgThresh);
 
 		cv::GaussianBlur(_imgThresh, _imgThresh, cv::Size(3, 3), 0);
 
@@ -86,9 +86,9 @@ void Camera::Record()
 			2,									// size of image / this value = "accumulator resolution", i.e. accum res = size of image / 2
 			_imgThresh.rows / 4,				// min distance in pixels between the centers of the detected circles
 			100,								// high threshold of Canny edge detector (called by cvHoughCircles)						
-			50,									// low threshold of Canny edge detector (set at 1/2 previous value)
+			70,									// low threshold of Canny edge detector (set at 1/2 previous value)
 			10,									// min circle radius (any circles with smaller radius will not be returned)
-			100);								// max circle radius (any circles with larger radius will not be returned)
+			200);								// max circle radius (any circles with larger radius will not be returned)
 
 		for (int i = 0; i < _v3fCircles.size(); i++) {		// for each circle . . .
 															// show ball position x, y, and radius to command line
