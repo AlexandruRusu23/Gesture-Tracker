@@ -123,7 +123,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClosedObject.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="OpenObject.cpp" />
+    <ClCompile Include="Point.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClosedObject.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="OpenObject.h" />
+    <ClInclude Include="Point.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
