@@ -24,6 +24,11 @@ namespace Managers
 			std::cout << "I'm a singleton class";
 		}
 		void receiveObjects(const Core::Object objects);
+		void receiceClosedObject(const Core::Object object);
+		void receiceClosedObject(const Core::ClosedObject closeObject);
+		void receiceOpenObject(const Core::Object object);
+		void receiceOpenObject(const Core::OpenObject openObject);
+
 
 	private:
 		// all objects stored in std::vector

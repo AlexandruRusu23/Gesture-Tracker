@@ -5,8 +5,11 @@ using namespace Video;
 Camera::Camera()
 {
 	// by default the class will try to connect for primary web cam installed on device
-	this->_webCameraID.open(0);
-	if (this->_webCameraID.isOpened() == false)
+	this->_webUpCameraID.open(2);
+	if (this->_webUpCameraID.isOpened() == false)
+		Stop();
+	this->_webSideCameraID.open(1);
+	if (this->_webSideCameraID.isOpened() == false)
 		Stop();
 	this->_isRunning = true;
 }
@@ -19,9 +22,16 @@ Camera::~Camera()
 bool Camera::Start()
 {
 	// check if VideoCapture object was associated to web cam successfully
-	if (this->_webCameraID.isOpened() == false) {
+	if (this->_webUpCameraID.isOpened() == false) {
 		// if not, print error message to std out
-		std::cout << "error: capWebcam not accessed successfully\n\n";
+		std::cout << "error: capWebcam1 not accessed successfully\n\n";
+		// and exit program
+		return false;
+	}
+	// check if VideoCapture object was associated to web cam successfully
+	if (this->_webSideCameraID.isOpened() == false) {
+		// if not, print error message to std out
+		std::cout << "error: capWebcam2 not accessed successfully\n\n";
 		// and exit program
 		return false;
 	}
@@ -115,79 +125,139 @@ void Camera::Record()
 {
 	CreateControlWindow();
 
-	int iLastX = -1;
-	int iLastY = -1;
+	int iLast1X = -1;
+	int iLast1Y = -1;
+	int iLast2X = -1;
+	int iLast2Y = -1;
 
-	cv::Mat imgTmp;
-	_webCameraID.read(imgTmp);
+	cv::Mat imgTmp1;
+	cv::Mat imgTmp2;
 
-	cv::Mat imgLines = cv::Mat::zeros(imgTmp.size(), CV_8UC3);
+	_webUpCameraID.read(imgTmp1);
+	_webSideCameraID.read(imgTmp2);
+
+	cv::Mat imgLines1 = cv::Mat::zeros(imgTmp1.size(), CV_8UC3);
+	cv::Mat imgLines2 = cv::Mat::zeros(imgTmp2.size(), CV_8UC3);
 
 	std::vector<Core::Point> tracePoints;
 
 	while (_isRunning)
 	{
-		if (!_webCameraID.isOpened())
+		if (!_webUpCameraID.isOpened())
+		{
+			std::cout << "error: capWebcam not accessed successfully\n\n";
+			this->Stop();
+		}
+		if (!_webSideCameraID.isOpened())
 		{
 			std::cout << "error: capWebcam not accessed successfully\n\n";
 			this->Stop();
 		}
 
-		if (!_webCameraID.read(_imgOriginal) || _imgOriginal.empty())
+		if (!_webUpCameraID.read(_imgOriginalUpView) || _imgOriginalUpView.empty())
+		{
+			std::cout << "error: frame not read from web cam\n";
+			this->Stop();
+		}
+		if (!_webSideCameraID.read(_imgOriginalSideView) || _imgOriginalSideView.empty())
 		{
 			std::cout << "error: frame not read from web cam\n";
 			this->Stop();
 		}
 
-		cv::cvtColor(_imgOriginal, _imgHSV, CV_BGR2HSV);
+		cv::cvtColor(_imgOriginalUpView, _img1HSV, CV_BGR2HSV);
+		cv::cvtColor(_imgOriginalSideView, _img2HSV, CV_BGR2HSV);
 
 		//  cv::Scalar(37, 30, 70), cv::Scalar(68, 175, 170)
-		cv::inRange(_imgHSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _imgThresh);
+		cv::inRange(_img1HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img1Thresh);
+		cv::inRange(_img2HSV, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), _img2Thresh);
 	
 		//morphological opening (removes small objects from the foreground)
-		erode(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		dilate(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+
+		//morphological opening (removes small objects from the foreground)
+		erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 
 		//morphological closing (removes small holes from the foreground)
-		dilate(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-		erode(_imgThresh, _imgThresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		dilate(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		erode(_img1Thresh, _img1Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+
+		//morphological closing (removes small holes from the foreground)
+		dilate(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+		erode(_img2Thresh, _img2Thresh, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 
 		//Calculate the moments of the thresholded image
-		cv::Moments oMoments = cv::moments(_imgThresh);
+		cv::Moments oMoments1 = cv::moments(_img1Thresh);
+		//Calculate the moments of the thresholded image
+		cv::Moments oMoments2 = cv::moments(_img2Thresh);
 
-		double dM01 = oMoments.m01;
-		double dM10 = oMoments.m10;
-		double dArea = oMoments.m00;
+		double d1M01 = oMoments1.m01;
+		double d1M10 = oMoments1.m10;
+		double d1Area = oMoments1.m00;
 
-		if (dArea > 10000)
+		if (d1Area > 10000)
 		{
 			//calculate the position of the ball
-			int posX = dM10 / dArea;
-			int posY = dM01 / dArea;
+			int posX = d1M10 / d1Area;
+			int posY = d1M01 / d1Area;
 
-			if (iLastX >= 0 && iLastY >= 0 && posX >= 0 && posY >= 0)
+			if (iLast1X >= 0 && iLast1Y >= 0 && posX >= 0 && posY >= 0)
 			{
-				//Draw a red line from the previous point to the current point
-				line(imgLines, cv::Point(posX, posY), cv::Point(iLastX, iLastY), cv::Scalar(0, 0, 255), 2);
+				if ((abs(iLast1X - posX) >= 5 && abs(iLast1X - posX) <= 50) || (abs(iLast1Y - posY) >= 5 && abs(iLast1Y - posY) <= 50))
+				{
+					//Draw a red line from the previous point to the current point
+					line(imgLines1, cv::Point(posX, posY), cv::Point(iLast1X, iLast1Y), cv::Scalar(0, 0, 255), 2);
+				}
 			}
 
-			iLastX = posX;
-			iLastY = posY;
+			iLast1X = posX;
+			iLast1Y = posY;
 		}
-		Core::Point point(iLastX, iLastY);
+
+		double d2M01 = oMoments2.m01;
+		double d2M10 = oMoments2.m10;
+		double d2Area = oMoments2.m00;
+
+		if (d2Area > 10000)
+		{
+			//calculate the position of the ball
+			int posX = d2M10 / d2Area;
+			int posY = d2M01 / d2Area;
+
+			if (iLast2X >= 0 && iLast2Y >= 0 && posX >= 0 && posY >= 0)
+			{
+				if ((abs(iLast2X - posX) >= 5 && abs(iLast2X - posX) <= 50) || (abs(iLast2Y - posY) >= 5 && abs(iLast2Y - posY) <= 50))
+				{
+					//Draw a red line from the previous point to the current point
+					line(imgLines2, cv::Point(posX, posY), cv::Point(iLast2X, iLast2Y), cv::Scalar(0, 0, 255), 2);
+				}
+			}
+
+			iLast2X = posX;
+			iLast2Y = posY;
+		}
+
+		Core::Point point(iLast1X, iLast1Y);
 		tracePoints.push_back(point);
 		object = tracePoints;
 
 		// declare windows
-		cv::namedWindow("imgOriginal", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window
-		cv::namedWindow("imgThresh", CV_WINDOW_AUTOSIZE);	// or CV_WINDOW_AUTOSIZE for a fixed size window matching the resolution of the image
-															// CV_WINDOW_AUTOSIZE is the default
+		cv::namedWindow("imgOriginalUpView", CV_WINDOW_AUTOSIZE);	// note: you can use CV_WINDOW_NORMAL which allows resizing the window
+		cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);	// or CV_WINDOW_AUTOSIZE for a fixed size window matching the resolution of the image CV_WINDOW_AUTOSIZE is the default
+		cv::namedWindow("imgOriginalSideView", CV_WINDOW_AUTOSIZE);
+		cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);
 
-		SearchForMove(_imgThresh, _imgOriginal);
+		SearchForMove(_img1Thresh, _imgOriginalUpView);
+		SearchForMove(_img2Thresh, _imgOriginalSideView);
 
-		_imgOriginal = _imgOriginal + imgLines;
-		cv::imshow("imgOriginal", _imgOriginal);			// show windows
-		cv::imshow("imgThresh", _imgThresh);
+		_imgOriginalUpView = _imgOriginalUpView + imgLines1;
+		_imgOriginalSideView = _imgOriginalSideView + imgLines2;
+		cv::imshow("imgOriginalUpView", _imgOriginalUpView); // show windows
+		cv::imshow("imgOriginalSideView", _imgOriginalSideView); // show windows
+		cv::imshow("img1Thresh", _img1Thresh);
+		cv::imshow("img2Thresh", _img2Thresh);
 
 		KeyboardEvent();
 	}

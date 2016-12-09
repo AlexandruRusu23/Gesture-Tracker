@@ -8,8 +8,10 @@ namespace Core
 	class OpenObject : public Object
 	{
 	public:
-		OpenObject(Object &object) : Object(object) {};
+		OpenObject() {};
+		OpenObject(const Object &object);
 		~OpenObject();
+
 
 		std::vector<Point> _vecVectorialCoords;
 

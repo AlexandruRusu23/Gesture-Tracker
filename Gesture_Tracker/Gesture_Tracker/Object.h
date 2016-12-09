@@ -15,6 +15,7 @@ namespace Core
 		//constructor
 		Object() {};
 		void addPoint(Point newPointCoords);
+		void addVector(std::vector<Point> newVectCoords);
 		void printPoints();
 		Object(std::vector<Point> vecPathCoords);
 		~Object();
@@ -27,7 +28,7 @@ namespace Core
 		//points which represent an object
 		std::vector<Point> _vecPathCoords;
 		//type of an Object ( default = "Unknown")
-		std::string type;
+		std::string _type;
 
 	private:
 

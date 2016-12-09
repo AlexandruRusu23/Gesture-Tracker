@@ -9,6 +9,13 @@ void Object::addPoint(Point newPointCoords)
 	_vecPathCoords.push_back(newPointCoords);
 }
 
+// clear the vector stored in class and replaced with newVectCoords
+void Object::addVector(std::vector<Point> newVectCoords)
+{
+	_vecPathCoords.clear();
+	_vecPathCoords = newVectCoords;
+}
+
 void Object::printPoints()
 {
 	std::ofstream obj("obiect.txt", std::ofstream::out);

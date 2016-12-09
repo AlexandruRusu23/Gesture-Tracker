@@ -29,6 +29,27 @@ void ObjectsManager::receiveObjects(const Core::Object objects)
 	_vecObjects = object;
 }
 
+void Managers::ObjectsManager::receiceClosedObject(const Core::Object objects)
+{
+	Core::ClosedObject closeObject(objects);
+	this->_vecClosedObjects.push_back(closeObject);
+}
+
+void Managers::ObjectsManager::receiceClosedObject(const Core::ClosedObject closeObject)
+{
+	this->_vecClosedObjects.push_back(closeObject);
+}
+
+void Managers::ObjectsManager::receiceOpenObject(const Core::Object object)
+{
+	Core::OpenObject openObject(object);
+	this->_vecOpenObjects.push_back(openObject);
+}
+
+void Managers::ObjectsManager::receiceOpenObject(const Core::OpenObject openObject)
+{
+}
+
 void ObjectsManager::DetectObjectsType()
 {
 	// TO DO: open/closed object identification

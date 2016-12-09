@@ -26,11 +26,15 @@ namespace Video
 		// handler for Camera
 		bool _isRunning;
 		// object associated to web camera
-		cv::VideoCapture _webCameraID;
+		cv::VideoCapture _webUpCameraID;
+		cv::VideoCapture _webSideCameraID;
 		// images
-		cv::Mat _imgOriginal;
-		cv::Mat _imgHSV;
-		cv::Mat _imgThresh;
+		cv::Mat _imgOriginalUpView;
+		cv::Mat _imgOriginalSideView;
+		cv::Mat _img1HSV;
+		cv::Mat _img2HSV;
+		cv::Mat _img1Thresh;
+		cv::Mat _img2Thresh;
 
 		int iLowH, iLowS, iLowV, iHighH, iHighS, iHighV;
 

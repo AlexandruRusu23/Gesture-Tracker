@@ -8,8 +8,12 @@ namespace Core
 	class ClosedObject : protected Object
 	{
 	public:
-		ClosedObject(Object &object) : Object(object) {};
+		ClosedObject() {};
+		ClosedObject(const Object &object);
 		~ClosedObject();
+
+		void addObject(const Object& object);
+		void addClosedObject(const ClosedObject& closeObject);
 
 		//vectorial coordinates
 		std::vector<Point> _vecVectorialCoords;
