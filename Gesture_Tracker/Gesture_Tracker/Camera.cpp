@@ -1,9 +1,11 @@
 #include "Camera.h"
+#include "ObjectsManager.h"
 
 using namespace Video;
 
 Camera::Camera()
 {
+	_objectsManager = Managers::ObjectsManager::Instance();
 	// by default the class will try to connect for primary web cam installed on device
 	this->_webUpCameraID.open(2);
 	if (this->_webUpCameraID.isOpened() == false)
@@ -13,6 +15,13 @@ Camera::Camera()
 		Stop();
 	this->_isRunning = true;
 	this->_isTracking = false;
+
+	_vecVectorialObject.push_back(cv::Point(100, 100));
+	_vecVectorialObject.push_back(cv::Point(100, 200));
+	_vecVectorialObject.push_back(cv::Point(200, 200));
+	_vecVectorialObject.push_back(cv::Point(200, 100));
+
+	_mapVectorialObjects["polygon"] = _vecVectorialObject;
 }
 
 Camera::~Camera()
@@ -36,6 +45,9 @@ bool Camera::Start()
 		// and exit program
 		return false;
 	}
+
+	Record();
+
 	return true;
 }
 
@@ -150,6 +162,12 @@ void Camera::CalculateTrackedObjectPosition(int &iLast1X, int &iLast1Y, int &iLa
 			iLast1Y = posY;
 		}
 	}
+	else
+	{
+		_imgLines1 = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
+		iLast1X = -1;
+		iLast1Y = -1;
+	}
 
 	double d2M01 = oMoments2.m01;
 	double d2M10 = oMoments2.m10;
@@ -163,13 +181,16 @@ void Camera::CalculateTrackedObjectPosition(int &iLast1X, int &iLast1Y, int &iLa
 
 		if (iLast2X >= 0 && iLast2Y >= 0 && posX >= 0 && posY >= 0)
 		{
-			if (posY < _imgOriginalSideView.rows / 3)
+			if (posY < (2 * _imgOriginalSideView.rows) / 3)
 			{
 				_isTracking = false;
+				_imgLines2 = cv::Mat::zeros(_imgTmp2.size(), CV_8UC3);
+				iLast2X = -1;
+				iLast2Y = -1;
 				return;
 			}
 			_isTracking = true;
-			if ((abs(iLast2X - posX) >= 5 && abs(iLast2X - posX) <= 50) || (abs(iLast2Y - posY) >= 5 && abs(iLast2Y - posY) <= 50))
+			if ((abs(iLast2X - posX) >= 2 && abs(iLast2X - posX) <= 50) || (abs(iLast2Y - posY) >= 2 && abs(iLast2Y - posY) <= 50))
 			{
 				//Draw a red line from the previous point to the current point
 				line(_imgLines2, cv::Point(posX, posY), cv::Point(iLast2X, iLast2Y), cv::Scalar(0, 0, 255), 2);
@@ -181,7 +202,22 @@ void Camera::CalculateTrackedObjectPosition(int &iLast1X, int &iLast1Y, int &iLa
 	}
 }
 
-void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed)
+void Video::Camera::AddVectorialViewToImage(cv::Mat imgVectorialView, cv::Mat& imgOriginalView)
+{
+	for (int y = 0; y < imgVectorialView.rows; y++)
+	{
+		for (int x = 0; x < imgVectorialView.cols; x++)
+		{
+			cv::Vec3b color = imgVectorialView.at<cv::Vec3b>(cv::Point(x, y));
+			if (color[0] == 255)
+			{
+				imgOriginalView.at<cv::Vec3b>(cv::Point(x, y)) = color;
+			}
+		}
+	}
+}
+
+void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed, int imgNumber)
 {
 	bool objectDetected = false;
 	cv::Mat temp;
@@ -199,22 +235,25 @@ void Camera::SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed)
 		std::vector<std::vector<cv::Point>> largestContourVec;
 		largestContourVec.push_back(contours.at(contours.size() - 1));
 
-		_objectBoundingRectangle = cv::boundingRect(largestContourVec.at(0));
-		int xPos = _objectBoundingRectangle.x + _objectBoundingRectangle.width / 2;
-		int yPos = _objectBoundingRectangle.y + _objectBoundingRectangle.height / 2;
+		_objectBoundingRectangle[imgNumber] = cv::boundingRect(largestContourVec.at(0));
+		int xPos = _objectBoundingRectangle[imgNumber].x + _objectBoundingRectangle[imgNumber].width / 2;
+		int yPos = _objectBoundingRectangle[imgNumber].y + _objectBoundingRectangle[imgNumber].height / 2;
 
 		_theObject[0] = xPos;
 		_theObject[1] = yPos;
 	}
 
-	int x = _theObject[0];
-	int y = _theObject[1];
+	if (_theObject[0] > 0 && _theObject[1] > 0)
+	{
+		int x = _theObject[0];
+		int y = _theObject[1];
 
-	cv::circle(cameraFeed, cv::Point(x, y), 20, cv::Scalar(0, 255, 0), 2);
-	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y-25), cv::Scalar(0, 255, 0), 2);
-	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y+25), cv::Scalar(0, 255, 0), 2);
-	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x-25, y), cv::Scalar(0, 255, 0), 2);
-	cv::line(cameraFeed, cv::Point(x, y), cv::Point(x+25, y), cv::Scalar(0, 255, 0), 2);
+		cv::circle(cameraFeed, cv::Point(x, y), 20, cv::Scalar(0, 255, 0), 2);
+		cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y - 25), cv::Scalar(0, 255, 0), 2);
+		cv::line(cameraFeed, cv::Point(x, y), cv::Point(x, y + 25), cv::Scalar(0, 255, 0), 2);
+		cv::line(cameraFeed, cv::Point(x, y), cv::Point(x - 25, y), cv::Scalar(0, 255, 0), 2);
+		cv::line(cameraFeed, cv::Point(x, y), cv::Point(x + 25, y), cv::Scalar(0, 255, 0), 2);
+	}
 }
 
 void Camera::WindowsManipulation()
@@ -225,11 +264,21 @@ void Camera::WindowsManipulation()
 	cv::namedWindow("imgOriginalSideView", CV_WINDOW_AUTOSIZE);
 	cv::namedWindow("img2Thresh", CV_WINDOW_AUTOSIZE);
 
-	SearchForMove(_img1Thresh, _imgOriginalUpView);
-	SearchForMove(_img2Thresh, _imgOriginalSideView);
+	SearchForMove(_img1Thresh, _imgOriginalUpView, 0);
+	SearchForMove(_img2Thresh, _imgOriginalSideView, 1);
 
-	_imgOriginalUpView = _imgOriginalUpView + _imgLines1;
-	_imgOriginalSideView = _imgOriginalSideView + _imgLines2;
+	cv::Mat imgTemporar;
+	_webSideCameraID.read(imgTemporar);
+	cv::Mat imgTrackLimit = cv::Mat::zeros(imgTemporar.size(), CV_8UC3);
+	// draw tracking limit line for side camera
+	line(imgTrackLimit, cv::Point( 0, (2 * _imgOriginalSideView.rows) / 3), cv::Point(imgTemporar.cols, (2 * _imgOriginalSideView.rows) / 3), cv::Scalar(255, 0, 0), 5);
+
+	AddVectorialViewToImage(_imgVectorialView, _imgOriginalUpView);
+	AddVectorialViewToImage(imgTrackLimit, _imgOriginalSideView);
+
+	_imgOriginalUpView += _imgLines1;
+	_imgOriginalSideView += _imgLines2;
+	
 	cv::imshow("imgOriginalUpView", _imgOriginalUpView); // show windows
 	cv::imshow("imgOriginalSideView", _imgOriginalSideView); // show windows
 	cv::imshow("img1Thresh", _img1Thresh);
@@ -248,7 +297,13 @@ void Camera::Record()
 	_webUpCameraID.read(_imgTmp1);
 	_webSideCameraID.read(_imgTmp2);
 
-	std::vector<Core::Point> tracePoints;
+	_imgVectorialView = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
+
+	cv::line(_imgVectorialView, cv::Point(100, 100), cv::Point(200, 200), cv::Scalar(255, 0, 0), 2);
+	cv::line(_imgVectorialView, cv::Point(200, 200), cv::Point(100, 400), cv::Scalar(255, 0, 0), 2);
+	cv::line(_imgVectorialView, cv::Point(100, 400), cv::Point(100, 100), cv::Scalar(255, 0, 0), 2);
+
+	cv::circle(_imgVectorialView, cv::Point(300, 300), 50, cv::Scalar(255, 0, 0), 3);
 
 	_imgLines1 = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
 	_imgLines2 = cv::Mat::zeros(_imgTmp2.size(), CV_8UC3);
@@ -282,10 +337,18 @@ void Camera::Record()
 
 		CalculateTrackedObjectPosition(iLast1X, iLast1Y, iLast2X, iLast2Y);
 
-		Core::Point point(iLast1X, iLast1Y);
-		tracePoints.push_back(point);
-		object = tracePoints;
+		if(iLast1X > 0 && iLast1Y > 0)
+			_tracePointsUpCamera.emplace_back(iLast1X, iLast1Y);
 
+		if (!_isTracking)
+		{
+			object.addVector(_tracePointsUpCamera);
+
+			_objectsManager->receiveObjects(object);
+
+			_tracePointsUpCamera.clear();
+		}
+		
 		WindowsManipulation();
 
 		KeyboardEvent();
