@@ -16,12 +16,12 @@ Camera::Camera()
 	this->_isRunning = true;
 	this->_isTracking = false;
 
-	_vecVectorialObject.push_back(cv::Point(100, 100));
-	_vecVectorialObject.push_back(cv::Point(100, 200));
-	_vecVectorialObject.push_back(cv::Point(200, 200));
-	_vecVectorialObject.push_back(cv::Point(200, 100));
+	//_vecVectorialObject.push_back(cv::Point(100, 100));
+	//_vecVectorialObject.push_back(cv::Point(100, 200));
+	//_vecVectorialObject.push_back(cv::Point(200, 200));
+	//_vecVectorialObject.push_back(cv::Point(200, 100));
 
-	_mapVectorialObjects["polygon"] = _vecVectorialObject;
+	//_mapVectorialObjects["polygon"] = _vecVectorialObject;
 }
 
 Camera::~Camera()
@@ -84,11 +84,11 @@ void Camera::CreateControlWindow()
 	cv::namedWindow("Control", CV_WINDOW_AUTOSIZE); //create a window called "Control"
 	cv::resizeWindow("Control", 400, 300);
 
-	iLowH = 41;
-	iHighH = 87;
+	iLowH = 62;
+	iHighH = 167;
 
-	iLowS = 71;
-	iHighS = 160;
+	iLowS = 72;
+	iHighS = 255;
 
 	iLowV = 0;
 	iHighV = 255;
@@ -285,6 +285,40 @@ void Camera::WindowsManipulation()
 	cv::imshow("img2Thresh", _img2Thresh);
 }
 
+void Video::Camera::DrawVectorialObject(std::string type, std::vector<std::pair<int, int>> points)
+{
+	if (!type.compare("circle"))
+	{
+		cv::circle(_imgVectorialView, cv::Point(points[0].first, points[0].second), points[1].first, cv::Scalar(255, 0, 0), 2);
+		AddVectorialViewToImage(_imgVectorialView, _imgOriginalUpView);
+	}
+	if (!type.compare("rectangle"))
+	{
+		double distance1 = sqrt((points[0].first - points[1].first)*(points[0].first - points[1].first) + (points[0].second - points[1].second) * (points[0].second - points[1].second));
+		double distance2 = sqrt((points[1].first - points[2].first)*(points[1].first - points[2].first) + (points[1].second - points[2].second) * (points[1].second - points[2].second));
+
+		if ((distance1 <= distance2 / 5) || (distance2 <= distance1 / 5))
+			cv::line(_imgVectorialView, cv::Point((points[0].first + points[1].first)/2, points[0].second), cv::Point((points[0].first + points[1].first) / 2, points[2].second), cv::Scalar(255, 0, 0), 2);
+		else
+		{
+			cv::line(_imgVectorialView, cv::Point(points[0].first, points[0].second), cv::Point(points[1].first, points[1].second), cv::Scalar(255, 0, 0), 2);
+			cv::line(_imgVectorialView, cv::Point(points[1].first, points[1].second), cv::Point(points[2].first, points[2].second), cv::Scalar(255, 0, 0), 2);
+			cv::line(_imgVectorialView, cv::Point(points[2].first, points[2].second), cv::Point(points[3].first, points[3].second), cv::Scalar(255, 0, 0), 2);
+			cv::line(_imgVectorialView, cv::Point(points[3].first, points[3].second), cv::Point(points[0].first, points[0].second), cv::Scalar(255, 0, 0), 2);
+		}
+		AddVectorialViewToImage(_imgVectorialView, _imgOriginalUpView);
+	}
+	if (!type.compare("rhombus"))
+	{
+		cv::line(_imgVectorialView, cv::Point(points[0].first, points[0].second), cv::Point(points[1].first, points[1].second), cv::Scalar(255, 0, 0), 2);
+		cv::line(_imgVectorialView, cv::Point(points[1].first, points[1].second), cv::Point(points[2].first, points[2].second), cv::Scalar(255, 0, 0), 2);
+		cv::line(_imgVectorialView, cv::Point(points[2].first, points[2].second), cv::Point(points[3].first, points[3].second), cv::Scalar(255, 0, 0), 2);
+		cv::line(_imgVectorialView, cv::Point(points[3].first, points[3].second), cv::Point(points[0].first, points[0].second), cv::Scalar(255, 0, 0), 2);
+		AddVectorialViewToImage(_imgVectorialView, _imgOriginalUpView);
+	}
+	points.clear();
+}
+
 void Camera::Record()
 {
 	CreateControlWindow();
@@ -298,12 +332,6 @@ void Camera::Record()
 	_webSideCameraID.read(_imgTmp2);
 
 	_imgVectorialView = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
-
-	cv::line(_imgVectorialView, cv::Point(100, 100), cv::Point(200, 200), cv::Scalar(255, 0, 0), 2);
-	cv::line(_imgVectorialView, cv::Point(200, 200), cv::Point(100, 400), cv::Scalar(255, 0, 0), 2);
-	cv::line(_imgVectorialView, cv::Point(100, 400), cv::Point(100, 100), cv::Scalar(255, 0, 0), 2);
-
-	cv::circle(_imgVectorialView, cv::Point(300, 300), 50, cv::Scalar(255, 0, 0), 3);
 
 	_imgLines1 = cv::Mat::zeros(_imgTmp1.size(), CV_8UC3);
 	_imgLines2 = cv::Mat::zeros(_imgTmp2.size(), CV_8UC3);
@@ -337,14 +365,26 @@ void Camera::Record()
 
 		CalculateTrackedObjectPosition(iLast1X, iLast1Y, iLast2X, iLast2Y);
 
-		if(iLast1X > 0 && iLast1Y > 0)
-			_tracePointsUpCamera.emplace_back(iLast1X, iLast1Y);
+		if (iLast1X > 0 && iLast1Y > 0)
+		{
+			Core::Point aux;
+			aux._xCoord = iLast1X;
+			aux._yCoord = iLast1Y;
+			_tracePointsUpCamera.push_back(aux);
+		}
 
 		if (!_isTracking)
 		{
 			object.addVector(_tracePointsUpCamera);
 
 			_objectsManager->receiveObjects(object);
+
+			std::string type;
+			std::vector<std::pair<int, int>> points;
+
+			_objectsManager->ReceiveResult(type, points);
+
+			DrawVectorialObject(type, points);
 
 			_tracePointsUpCamera.clear();
 		}

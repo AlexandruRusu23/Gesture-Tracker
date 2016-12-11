@@ -79,6 +79,8 @@ namespace Video
 
 		void WindowsManipulation();
 
+		void DrawVectorialObject(std::string type, std::vector<std::pair<int, int>> points);
+
 		// search object moving
 		void SearchForMove(cv::Mat thresholdImage, cv::Mat &cameraFeed, int imgNumber);
 
